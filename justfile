@@ -4,4 +4,4 @@ default:
     echo 'Hello, world!'
 
 run-main:
-    cargo run --bin tokio-learn --release
+    cargo run --bin rush --release

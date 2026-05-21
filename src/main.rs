@@ -35,9 +35,13 @@ fn main() -> io::Result<()> {
         "type",
         CmdFn {
             function: |cmd_fn, args| -> bool {
-                match cmd_fn.get(args) {
-                    Some(k) => println!("{}", k.description),
-                    None => println!("invalid_command: not found"),
+                if args.is_empty() {
+                    println!("Usage: type <args>");
+                } else {
+                    match cmd_fn.get(args) {
+                        Some(k) => println!("{}", k.description),
+                        None => println!("invalid_command: not found"),
+                    }
                 }
                 true
             },
