@@ -3,6 +3,7 @@ use std::{
     env, fs,
     io::{self, Write},
     os::unix::fs::PermissionsExt,
+    path::Path,
 };
 struct CmdFn {
     function: fn(map: &HashMap<&str, CmdFn>, args: &str) -> bool,
@@ -66,9 +67,7 @@ fn main() -> io::Result<()> {
             continue;
         }
 
-        let (command, args) = trimmed_input
-            .split_once(" ")
-            .unwrap_or_else(|| (trimmed_input, ""));
+        let (command, args) = trimmed_input.split_once(" ").unwrap_or((trimmed_input, ""));
 
         let should_continue = exec_command(&cmd_fn, command, args);
 
@@ -92,21 +91,16 @@ fn check_path(cmd: &str) {
     let path = env::var("PATH");
     match path {
         Ok(val) => {
-            let paths = val.split(":");
             let mut is_cmd = false;
-            'outer: for path in paths {
-                for entry in fs::read_dir(path).unwrap() {
-                    let entry = entry.unwrap();
-                    let path_buf = entry.path();
-                    let filename = entry.file_name();
-                    let metadata = fs::metadata(&path_buf).unwrap();
+            for dir in val.split(":") {
+                let path_buf = Path::new(dir).join(cmd);
+                if let Ok(metadata) = fs::metadata(&path_buf) {
                     let permissions = metadata.permissions();
-                    let is_executable = permissions.mode() & 0o111 != 0;
-
-                    if filename == cmd && is_executable {
+                    let is_executable = permissions.mode() & 0b01001001 != 0;
+                    if metadata.is_file() && is_executable {
                         is_cmd = true;
-                        println!("{} is {:?}", cmd, path_buf);
-                        break 'outer;
+                        println!("{} is {:?}", cmd, path_buf.display());
+                        break;
                     }
                 }
             }
