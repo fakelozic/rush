@@ -5,3 +5,6 @@ default:
 
 run-main:
     cargo run --bin rush --release
+
+run-learn:
+    cargo run --bin learn --release

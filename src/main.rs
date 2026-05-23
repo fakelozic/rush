@@ -1,6 +1,8 @@
 use std::{
     collections::HashMap,
+    env, fs,
     io::{self, Write},
+    os::unix::fs::PermissionsExt,
 };
 struct CmdFn {
     function: fn(map: &HashMap<&str, CmdFn>, args: &str) -> bool,
@@ -40,7 +42,7 @@ fn main() -> io::Result<()> {
                 } else {
                     match cmd_fn.get(args) {
                         Some(k) => println!("{}", k.description),
-                        None => println!("invalid_command: not found"),
+                        None => check_path(args),
                     }
                 }
                 true
@@ -82,6 +84,38 @@ fn exec_command(cmd_fn: &HashMap<&str, CmdFn>, command: &str, args: &str) -> boo
         None => {
             println!("Command not found {}", command);
             true
+        }
+    }
+}
+
+fn check_path(cmd: &str) {
+    let path = env::var("PATH");
+    match path {
+        Ok(val) => {
+            let paths = val.split(":");
+            let mut is_cmd = false;
+            'outer: for path in paths {
+                for entry in fs::read_dir(path).unwrap() {
+                    let entry = entry.unwrap();
+                    let path_buf = entry.path();
+                    let filename = entry.file_name();
+                    let metadata = fs::metadata(&path_buf).unwrap();
+                    let permissions = metadata.permissions();
+                    let is_executable = permissions.mode() & 0o111 != 0;
+
+                    if filename == cmd && is_executable {
+                        is_cmd = true;
+                        println!("{} is {:?}", cmd, path_buf);
+                        break 'outer;
+                    }
+                }
+            }
+            if !is_cmd {
+                println!("{}: not found", cmd);
+            }
+        }
+        Err(err) => {
+            println!("Error accessing path: {}", err);
         }
     }
 }
