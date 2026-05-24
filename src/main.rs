@@ -99,7 +99,7 @@ fn check_path(cmd: &str) {
                     let is_executable = permissions.mode() & 0b01001001 != 0;
                     if metadata.is_file() && is_executable {
                         is_cmd = true;
-                        println!("{} is {:?}", cmd, path_buf.display());
+                        println!("{} is {}", cmd, path_buf.display());
                         break;
                     }
                 }
