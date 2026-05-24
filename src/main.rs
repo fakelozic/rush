@@ -115,16 +115,37 @@ fn check_path(cmd: &str) {
 }
 
 fn use_quotes(args: &str) -> String {
-    let trimmed_str = args.trim();
-    let vec_str: Vec<&str> = trimmed_str.split("'").collect();
-    let mut arg: Vec<&str> = Vec::new();
-    for word in vec_str {
-        if word.is_empty() {
-            continue;
-        }
-        arg.push(word);
-    }
-    arg.concat()
+    // let trimmed_str = args.trim();
+    // let vec_str: Vec<&str> = trimmed_str.split("'").collect();
+    // let mut arg: Vec<&str> = Vec::new();
+    // for word in vec_str {
+    //     if word.is_empty() {
+    //         continue;
+    //     }
+    //     arg.push(word);
+    // }
+    // arg.concat()
+
+    // let str = args
+    //     .trim()
+    //     .split('\'')
+    //     .filter(|word| !word.is_empty())
+    //     .collect::<String>();
+
+    // println!(
+    //     "str: {}",
+    //     str.split(' ').filter(|x| !x.is_empty()).map(|x| format!("{x} ")).collect::<String>()
+    // );
+    // let text: Vec<&str> = "'h'  'w'".trim().split('\'').collect();
+    // let textx: Vec<&str> = "xhx  xwx".trim().split('x').collect();
+    // println!("{:?}", text);
+    // println!("{:?}", textx);
+    // assert_eq!(text, textx);
+    args.trim()
+        .split('\'')
+        .filter(|x| !x.is_empty())
+        .map(|x| if x.trim().is_empty() { " " } else { x })
+        .collect::<String>()
 }
 
 #[test]
@@ -134,7 +155,8 @@ fn use_quotes_test() {
         use_quotes("    'hello world'    "),
         String::from("hello world")
     );
-
     assert_eq!(use_quotes("'hello''world'"), String::from("helloworld"));
+    assert_eq!(use_quotes("'hello' 'world'"), String::from("hello world"));
+    assert_eq!(use_quotes("'hello'  'world'"), String::from("hello world"));
     assert_eq!(use_quotes("hello''world"), String::from("helloworld"));
 }
