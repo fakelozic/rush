@@ -27,7 +27,7 @@ fn main() -> io::Result<()> {
                 if args.is_empty() {
                     println!("Usage: echo <args>");
                 } else {
-                    println!("{}", args);
+                    println!("{}", use_quotes(args));
                 }
                 true
             },
@@ -43,7 +43,7 @@ fn main() -> io::Result<()> {
                 } else {
                     match cmd_fn.get(args) {
                         Some(k) => println!("{}", k.description),
-                        None => check_path(args),
+                        None => check_path(&use_quotes(args)),
                     }
                 }
                 true
@@ -112,4 +112,29 @@ fn check_path(cmd: &str) {
             println!("Error accessing path: {}", err);
         }
     }
+}
+
+fn use_quotes(args: &str) -> String {
+    let trimmed_str = args.trim();
+    let vec_str: Vec<&str> = trimmed_str.split("'").collect();
+    let mut arg: Vec<&str> = Vec::new();
+    for word in vec_str {
+        if word.is_empty() {
+            continue;
+        }
+        arg.push(word);
+    }
+    arg.concat()
+}
+
+#[test]
+fn use_quotes_test() {
+    assert_eq!(use_quotes("'hello world'"), String::from("hello world"));
+    assert_eq!(
+        use_quotes("    'hello world'    "),
+        String::from("hello world")
+    );
+
+    assert_eq!(use_quotes("'hello''world'"), String::from("helloworld"));
+    assert_eq!(use_quotes("hello''world"), String::from("helloworld"));
 }
