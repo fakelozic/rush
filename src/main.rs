@@ -1,9 +1,11 @@
 use std::{
     collections::HashMap,
-    env, fs,
+    env::{self, VarError},
+    fs,
     io::{self, Write},
     os::unix::fs::PermissionsExt,
     path::Path,
+    process::Command,
 };
 struct CmdFn {
     function: fn(map: &HashMap<&str, CmdFn>, args: &str) -> bool,
@@ -43,7 +45,7 @@ fn main() -> io::Result<()> {
                 } else {
                     match cmd_fn.get(args) {
                         Some(k) => println!("{}", k.description),
-                        None => check_path(&use_quotes(args)),
+                        None => print_path(&use_quotes(args)),
                     }
                 }
                 true
@@ -77,70 +79,64 @@ fn main() -> io::Result<()> {
     }
 }
 
-fn exec_command(cmd_fn: &HashMap<&str, CmdFn>, command: &str, args: &str) -> bool {
-    match cmd_fn.get(command) {
+fn exec_command(cmd_fn: &HashMap<&str, CmdFn>, cmd: &str, args: &str) -> bool {
+    match cmd_fn.get(cmd) {
         Some(v) => (v.function)(cmd_fn, args),
         None => {
-            println!("Command not found {}", command);
+            let (path, err) = check_path(cmd);
+            match err {
+                Some(e) => println!("Error accessing path: {}", e),
+                None => match path {
+                    Some(_) => {
+                        let parsed_args = use_quotes(args);
+                        let arg_vec: Vec<&str> = parsed_args.split_whitespace().collect();
+                        let mut child = Command::new(cmd)
+                            .args(arg_vec)
+                            .spawn()
+                            .expect("Failed to execute command");
+
+                        child.wait().expect("Failed to wait on child");
+                    }
+                    None => println!("{}: not found", cmd),
+                },
+            };
             true
         }
     }
 }
 
-fn check_path(cmd: &str) {
+fn check_path(cmd: &str) -> (Option<String>, Option<VarError>) {
     let path = env::var("PATH");
     match path {
         Ok(val) => {
-            let mut is_cmd = false;
             for dir in val.split(":") {
                 let path_buf = Path::new(dir).join(cmd);
                 if let Ok(metadata) = fs::metadata(&path_buf) {
                     let permissions = metadata.permissions();
                     let is_executable = permissions.mode() & 0b01001001 != 0;
                     if metadata.is_file() && is_executable {
-                        is_cmd = true;
-                        println!("{} is {}", cmd, path_buf.display());
-                        break;
+                        return (Some(path_buf.display().to_string()), None);
                     }
                 }
             }
-            if !is_cmd {
-                println!("{}: not found", cmd);
-            }
+            (None, None)
         }
-        Err(err) => {
-            println!("Error accessing path: {}", err);
-        }
+        Err(err) => (None, Some(err)),
+    }
+}
+
+fn print_path(cmd: &str) {
+    let (path, err) = check_path(cmd);
+    match err {
+        Some(e) => println!("Error accessing path: {}", e),
+        None => match path {
+            Some(p) => println!("{} is {}", cmd, p),
+            None => println!("{}: not found", cmd),
+        },
     }
 }
 
 fn use_quotes(args: &str) -> String {
-    // let trimmed_str = args.trim();
-    // let vec_str: Vec<&str> = trimmed_str.split("'").collect();
-    // let mut arg: Vec<&str> = Vec::new();
-    // for word in vec_str {
-    //     if word.is_empty() {
-    //         continue;
-    //     }
-    //     arg.push(word);
-    // }
-    // arg.concat()
-
-    // let str = args
-    //     .trim()
-    //     .split('\'')
-    //     .filter(|word| !word.is_empty())
-    //     .collect::<String>();
-
-    // println!(
-    //     "str: {}",
-    //     str.split(' ').filter(|x| !x.is_empty()).map(|x| format!("{x} ")).collect::<String>()
-    // );
-    // let text: Vec<&str> = "'h'  'w'".trim().split('\'').collect();
-    // let textx: Vec<&str> = "xhx  xwx".trim().split('x').collect();
-    // println!("{:?}", text);
-    // println!("{:?}", textx);
-    // assert_eq!(text, textx);
     args.trim()
         .split('\'')
         .filter(|x| !x.is_empty())
