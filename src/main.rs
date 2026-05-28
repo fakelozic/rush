@@ -29,7 +29,7 @@ fn main() -> io::Result<()> {
                 if args.is_empty() {
                     println!("Usage: echo <args>");
                 } else {
-                    println!("{}", use_quotes(args));
+                    println!("{}", single_quotes(args));
                 }
                 true
             },
@@ -45,7 +45,7 @@ fn main() -> io::Result<()> {
                 } else {
                     match cmd_fn.get(args) {
                         Some(k) => println!("{}", k.description),
-                        None => print_path(&use_quotes(args)),
+                        None => print_path(&single_quotes(args)),
                     }
                 }
                 true
@@ -88,7 +88,7 @@ fn exec_command(cmd_fn: &HashMap<&str, CmdFn>, cmd: &str, args: &str) -> bool {
                 Some(e) => println!("Error accessing path: {}", e),
                 None => match path {
                     Some(_) => {
-                        let parsed_args = use_quotes(args);
+                        let parsed_args = single_quotes(args);
                         let arg_vec: Vec<&str> = parsed_args.split_whitespace().collect();
                         let mut child = Command::new(cmd)
                             .args(arg_vec)
@@ -136,7 +136,7 @@ fn print_path(cmd: &str) {
     }
 }
 
-fn use_quotes(args: &str) -> String {
+fn single_quotes(args: &str) -> String {
     args.trim()
         .split('\'')
         .filter(|x| !x.is_empty())
@@ -145,14 +145,20 @@ fn use_quotes(args: &str) -> String {
 }
 
 #[test]
-fn use_quotes_test() {
-    assert_eq!(use_quotes("'hello world'"), String::from("hello world"));
+fn single_quotes_test() {
+    assert_eq!(single_quotes("'hello world'"), String::from("hello world"));
     assert_eq!(
-        use_quotes("    'hello world'    "),
+        single_quotes("    'hello world'    "),
         String::from("hello world")
     );
-    assert_eq!(use_quotes("'hello''world'"), String::from("helloworld"));
-    assert_eq!(use_quotes("'hello' 'world'"), String::from("hello world"));
-    assert_eq!(use_quotes("'hello'  'world'"), String::from("hello world"));
-    assert_eq!(use_quotes("hello''world"), String::from("helloworld"));
+    assert_eq!(single_quotes("'hello''world'"), String::from("helloworld"));
+    assert_eq!(
+        single_quotes("'hello' 'world'"),
+        String::from("hello world")
+    );
+    assert_eq!(
+        single_quotes("'hello'  'world'"),
+        String::from("hello world")
+    );
+    assert_eq!(single_quotes("hello''world"), String::from("helloworld"));
 }

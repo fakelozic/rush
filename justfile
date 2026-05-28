@@ -2,9 +2,10 @@
 
 default:
     echo 'Hello, world!'
-
-run-main:
+clippy-r:
+    cargo clippy --release
+main-r:
     cargo run --bin rush --release
 
-run-learn:
+learn-r:
     cargo run --bin learn --release
